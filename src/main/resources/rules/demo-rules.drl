@@ -1,0 +1,98 @@
+package com.cscec.bid.rules;
+
+import com.cscec.bid.ruleengine.model.*;
+import java.math.BigDecimal;
+
+global java.util.List riskFlags;
+
+// ========== P类规则：制度要求（高优先级）==========
+
+// P-003：保函金额不足
+rule "P-003-保函金额不足"
+    salience 200
+    activation-group "bond-check"
+    agenda-group "batch_02"
+    when
+        $p : Project(contractAmount != null)
+        $b : Bond(amount != null, amount.compareTo($p.contractAmount.multiply(new BigDecimal("0.02"))) < 0)
+    then
+        riskFlags.add(new RiskFlag("P-003",
+            "保函金额不足合同额2%，退回补正",
+            "退回补正", 0.95));
+end
+
+// P-005：高风险国别
+rule "P-005-高风险国别"
+    salience 200
+    agenda-group "batch_01"
+    when
+        $p : Project(country in ("Syria", "Afghanistan", "Yemen", "Libya", "Somalia"))
+    then
+        riskFlags.add(new RiskFlag("P-005",
+            "项目所在国为高风险地区，需额外安全评估",
+            "人工审查", 0.90));
+end
+
+// P-010：利润率不达标（以股份公司名义）
+rule "P-010-利润率不达标"
+    salience 200
+    agenda-group "batch_04"
+    when
+        $p : Project(mode == "EPC", profitRate != null, profitRate.compareTo(new BigDecimal("0.06")) < 0)
+    then
+        riskFlags.add(new RiskFlag("P-010",
+            "EPC模式利润率低于6%，不符合股份公司要求",
+            "退回补正", 0.95));
+end
+
+// ========== R类规则：案例经验（中等优先级）==========
+
+// R-015：联营体单方退出条款
+rule "R-015-联营体单方退出"
+    salience 100
+    agenda-group "batch_03"
+    when
+        $jv : JointVentureAgreement(exists == true, clauses != null, clauses contains "单方退出")
+    then
+        riskFlags.add(new RiskFlag("R-015",
+            "联营体协议存在单方退出条款，需审查对等性",
+            "人工审查", 0.85));
+end
+
+// R-020：工期罚款过高
+rule "R-020-工期罚款过高"
+    salience 100
+    agenda-group "batch_04"
+    when
+        $p : Project(penaltyRate != null, penaltyRate.compareTo(new BigDecimal("0.10")) > 0)
+    then
+        riskFlags.add(new RiskFlag("R-020",
+            "工期罚款比例超过10%，存在过高风险",
+            "人工审查", 0.80));
+end
+
+// R-030：业主资信不良
+rule "R-030-业主资信不良"
+    salience 100
+    agenda-group "batch_02"
+    when
+        $p : Project(ownerCredit in ("D级", "未知", "黑名单"))
+    then
+        riskFlags.add(new RiskFlag("R-030",
+            "业主资信评级不良，建议加强尽职调查",
+            "人工审查", 0.85));
+end
+
+// ========== 触发链 ==========
+
+// R-C1 触发后自动检查 R-C2
+rule "trigger-R-C1-R-C2"
+    agenda-group "batch_05"
+    when
+        $rf : RiskFlag(ruleId == "R-C1")
+        not RiskFlag(ruleId == "R-C2")
+    then
+        riskFlags.add(new RiskFlag("R-C2",
+            "R-C1关联触发：需补充审查",
+            "自动", 1.0));
+end
