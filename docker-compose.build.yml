@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   rule-engine:
-    image: ghcr.io/liuli01/os-bid-eval-rule-engine:latest
+    build: .
     container_name: os-bid-eval-rule-engine
     ports:
       - "8080:8080"
