@@ -46,9 +46,9 @@ docker-compose up -d
 
 > **AI 提示**：本项目集成了 Swagger/OpenAPI，服务启动后可通过以下地址查看交互式 API 文档：
 > - **Swagger UI**：`http://localhost:8080/swagger-ui.html`
-> - **OpenAPI JSON**：`http://localhost:8080/v3/api-docs`
+> - **OpenAPI JSON**：`http://localhost:8080/api-docs`
 >
-> AI 可直接解析 `/v3/api-docs` 获取完整的 API Schema，包括请求/响应模型、字段类型、必填项等元数据。
+> AI 可直接解析 `/api-docs` 获取完整的 API Schema，包括请求/响应模型、字段类型、必填项等元数据。
 
 ### 规则管理
 
